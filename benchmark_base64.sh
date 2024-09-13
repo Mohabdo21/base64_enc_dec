@@ -23,6 +23,9 @@ declare -A executables=(
 	["Go"]="./base64_enc_dec_go"
 )
 
+# Array to store results
+declare -a results=()
+
 # Signal trapping to cleanup on Ctrl+C
 trap 'cleanup; exit' SIGINT
 
@@ -108,6 +111,24 @@ benchmark_executable() {
 	echo -e "${COLORS[GREEN]}Decoded string: $decoded_string${COLORS[NC]}"
 	echo -e "${COLORS[CYAN]}$lang decoding took $((total_duration - duration)) ms.${COLORS[NC]}"
 	echo -e "${COLORS[WHITE]}$lang total time (encode + decode) took $total_duration ms.${COLORS[NC]}"
+
+	# Store result in array
+	results+=("$lang:$total_duration")
+}
+
+# Print the results as a sorted table
+print_results_table() {
+	echo -e "${COLORS[WHITE]}\n============================${COLORS[NC]}"
+	echo -e "${COLORS[CYAN]}Benchmark Results (sorted by total time):${COLORS[NC]}"
+	echo -e "${COLORS[WHITE]}============================${COLORS[NC]}"
+	printf "%-12s | %-12s\n" "Language" "Total Time (ms)"
+	echo "------------------------------"
+
+	for result in $(printf "%s\n" "${results[@]}" | sort -t: -k2 -n); do
+		lang=$(echo "$result" | cut -d: -f1)
+		total_time=$(echo "$result" | cut -d: -f2)
+		printf "%-12s | %-12s\n" "$lang" "$total_time"
+	done
 }
 
 # Cleanup compiled files
@@ -122,7 +143,12 @@ compile_c_code
 build_go_executable
 
 for lang in "${!executables[@]}"; do
-	check_executable "${executables[$lang]}" && benchmark_executable "$lang" "${executables[$lang]}" || echo -e "${COLORS[RED]}Skipping $lang.${COLORS[NC]}"
+	check_executable "${executables[$lang]}" &&
+		benchmark_executable "$lang" "${executables[$lang]}" ||
+		echo -e "${COLORS[RED]}Skipping $lang.${COLORS[NC]}"
 done
+
+# Print results table
+print_results_table
 
 cleanup
