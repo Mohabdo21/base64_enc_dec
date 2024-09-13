@@ -12,6 +12,7 @@ A collection of scripts to encode and decode strings to and from Base64 in vario
   - [Python](#python)
   - [Ruby](#ruby)
   - [Bash](#bash)
+- [Benchmarking Script](#benchmarking-script)
 
 ## Overview
 
@@ -85,3 +86,19 @@ Run the Bash script:
 ./base64_enc_dec.sh encode "your_string"
 ./base64_enc_dec.sh decode "your_base64_string"
 ```
+
+## Benchmarking Script
+
+This repository includes a benchmarking script, `benchmark_base64.sh`, which allows you to compare the performance of Base64 encoding and decoding across multiple programming languages. The script executes implementations in C, Python, Ruby, JavaScript, and Bash, measuring the time taken to encode and decode a sample string in each language.
+
+### Running the Benchmark
+
+To use the benchmarking script, ensure that all necessary runtime environments and dependencies are installed. The script will compile the C program automatically and attempt to run each language's script. It also checks if the scripts are executable and makes them executable if necessary.
+
+To run the benchmark:
+
+```sh
+./benchmark_base64.sh
+```
+
+This benchmarking script provides insight into the relative performance of Base64 encoding and decoding across different languages.
