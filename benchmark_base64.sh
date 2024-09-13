@@ -20,89 +20,65 @@ declare -A executables=(
 	["Bash"]="./base64_enc_dec.sh"
 )
 
-# Compile the C code
+# Compile C code
 function compile_c_code {
 	local c_file="base64_enc_dec.c"
 	local output_executable="base64_enc_dec_c"
 
-	echo -e "${CYAN}\nCompiling C code...${NC}"
-
-	gcc "$c_file" -o "$output_executable"
-
-	if [ $? -ne 0 ]; then
-		echo -e "${RED}C code compilation failed. Exiting...${NC}"
+	echo -e "${CYAN}Compiling C code...${NC}"
+	gcc "$c_file" -o "$output_executable" || {
+		echo -e "${RED}C compilation failed. Exiting...${NC}"
 		exit 1
-	fi
-
+	}
 	echo -e "${GREEN}C code compiled successfully!${NC}"
 }
 
-# Check if executable is present and handle errors gracefully
+# Check if executable exists and is executable
 function check_executable {
-	if [ ! -f "$1" ]; then
-		echo -e "${RED}$1 not found. Skipping...${NC}"
+	local exec_path="$1"
+	if [[ ! -f "$exec_path" ]]; then
+		echo -e "${RED}$exec_path not found. Skipping...${NC}"
 		return 1
-	elif [ ! -x "$1" ]; then
-		echo -e "${YELLOW}$1 found but is not executable. Trying to make it executable...${NC}"
-		chmod +x "$1"
-
-		# Recheck
-		if [ ! -x "$1" ]; then
-			echo -e "${RED}Failed to make $1 executable. Skipping...${NC}"
+	elif [[ ! -x "$exec_path" ]]; then
+		echo -e "${YELLOW}$exec_path is not executable. Attempting to fix...${NC}"
+		chmod +x "$exec_path" || {
+			echo -e "${RED}Failed to make $exec_path executable. Skipping...${NC}"
 			return 1
-		else
-			echo -e "${GREEN}$1 is now executable.${NC}"
-		fi
+		}
 	fi
 	return 0
 }
 
-# Measure execution time for encoding/decoding
+# Benchmark the encoding/decoding time
 function benchmark_executable {
-	local lang="$1"
-	local exec_path="$2"
-	local encoded_string
+	local lang="$1" exec_path="$2" encoded_string start_time end_time duration total_duration
 
 	echo -e "${WHITE}\n============================${NC}"
 	echo -e "${CYAN}Running $lang Script:${NC}"
 	echo -e "${WHITE}============================${NC}"
 
-	# Encode the input_string
+	# Encode
 	echo -e "${YELLOW}Encoding with $lang...${NC}"
-
-	# Measure encoding time
 	start_time=$(date +%s%N)
 	encoded_string=$("$exec_path" "encode" "$input_string")
 	end_time=$(date +%s%N)
-	encoding_duration=$(((end_time - start_time) / 1000000))
-
+	duration=$(((end_time - start_time) / 1000000))
 	echo -e "${GREEN}Encoded string: $encoded_string${NC}"
-	echo -e "${CYAN}$lang encoding took $encoding_duration ms.${NC}"
+	echo -e "${CYAN}$lang encoding took $duration ms.${NC}"
 
-	# Decode the encoded string
+	# Decode
 	echo -e "${YELLOW}Decoding with $lang...${NC}"
-
-	# Measure decoding time
 	start_time=$(date +%s%N)
 	"$exec_path" "decode" "$encoded_string"
 	end_time=$(date +%s%N)
-	decoding_duration=$(((end_time - start_time) / 1000000))
-
-	echo -e "${CYAN}$lang decoding took $decoding_duration ms.${NC}"
-
-	# Output total time
-	total_duration=$((encoding_duration + decoding_duration))
+	total_duration=$((duration + ((end_time - start_time) / 1000000)))
+	echo -e "${CYAN}$lang decoding took $((total_duration - duration)) ms.${NC}"
 	echo -e "${WHITE}$lang total time (encode + decode) took $total_duration ms.${NC}"
 }
 
-# Compile C code first
+# Compile and run benchmarks
 compile_c_code
 
-# Check and run all executables, logging errors and continuing
 for lang in "${!executables[@]}"; do
-	if check_executable "${executables[$lang]}"; then
-		benchmark_executable "$lang" "${executables[$lang]}"
-	else
-		echo -e "${RED}Skipping $lang due to errors.${NC}"
-	fi
+	check_executable "${executables[$lang]}" && benchmark_executable "$lang" "${executables[$lang]}" || echo -e "${RED}Skipping $lang.${NC}"
 done
