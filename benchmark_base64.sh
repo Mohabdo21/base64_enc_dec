@@ -23,13 +23,23 @@ declare -A executables=(
 	["Go"]="./base64_enc_dec_go"
 )
 
+# Signal trapping to cleanup on Ctrl+C
+trap 'cleanup; exit' SIGINT
+
+# Check if required commands exist
+check_dependencies() {
+	for cmd in gcc go; do
+		if ! command -v "$cmd" &>/dev/null; then
+			echo -e "${COLORS[RED]}Error: $cmd is not installed.${COLORS[NC]}"
+			exit 1
+		fi
+	done
+}
+
 # Compile C code
 compile_c_code() {
-	local c_file="base64_enc_dec.c"
-	local output_executable="base64_enc_dec_c"
-
 	echo -e "${COLORS[CYAN]}Compiling C code...${COLORS[NC]}"
-	gcc "$c_file" -o "$output_executable" || {
+	gcc base64_enc_dec.c -o base64_enc_dec_c || {
 		echo -e "${COLORS[RED]}C compilation failed. Exiting...${COLORS[NC]}"
 		exit 1
 	}
@@ -64,7 +74,9 @@ check_executable() {
 
 # Benchmark the encoding/decoding time
 benchmark_executable() {
-	local lang="$1" exec_path="$2" encoded_string start_time end_time duration total_duration
+	local lang="$1" exec_path="$2"
+	local encoded_string decoded_string
+	local start_time end_time duration total_duration
 
 	echo -e "${COLORS[WHITE]}\n============================${COLORS[NC]}"
 	echo -e "${COLORS[CYAN]}Running $lang Script:${COLORS[NC]}"
@@ -104,7 +116,8 @@ cleanup() {
 	rm -f base64_enc_dec_c base64_enc_dec_go
 }
 
-# Compile and run benchmarks
+# Main
+check_dependencies
 compile_c_code
 build_go_executable
 
@@ -112,5 +125,4 @@ for lang in "${!executables[@]}"; do
 	check_executable "${executables[$lang]}" && benchmark_executable "$lang" "${executables[$lang]}" || echo -e "${COLORS[RED]}Skipping $lang.${COLORS[NC]}"
 done
 
-# Cleanup
 cleanup
